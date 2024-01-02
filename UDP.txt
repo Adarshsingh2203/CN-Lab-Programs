@@ -1,0 +1,94 @@
+Implement a 4 node point to point network with links n0-n2, n1-n2 and n2-n3 apply TCP agent between n0-n3 and UDP agent between n1-n3 apply relevant application over TCP and UDP agent changing the parameter and determine the no of pocket sent by tcp/udp
+
+set ns [new Simulator]                                                #create a new simulator object
+
+set nf [open "pa2.nam" w]                                          #open the nam trace file
+$ns namtrace-all $nf
+
+set tf [open "pa2.tr" w]
+$ns trace-all $tf
+
+proc finish { } {                                                          #define a ‘finish’ procedure  
+global ns nf tf
+$ns flush-trace
+close $nf                                                                       #close the nam file
+close $tf                                                                        #close the trace file
+exec nam pa2.nam &
+exit 
+}
+
+set n0 [$ns node]                                                            #create four nodes
+set n1 [$ns node]
+set n2 [$ns node]
+set n3 [$ns node]
+
+$n0 label "TCP"
+$n1 label "UDP"
+$n3 label "Null-TCPSink"
+$ns color 1 red
+$ns color 2 blue
+
+$ns duplex-link $n0 $n2 10Mb 1ms DropTail
+$ns duplex-link $n1 $n2 10Mb 1ms DropTail
+$ns duplex-link $n2 $n3 10Mb 1ms DropTail
+
+set tcp0 [new Agent/TCP]
+$ns attach-agent $n0 $tcp0
+
+set udp1 [new Agent/UDP]
+$ns attach-agent $n1 $udp1
+
+set null0 [new Agent/Null]
+$ns attach-agent $n3 $null0
+
+set sink0 [new Agent/TCPSink]
+$ns attach-agent $n3 $sink0
+
+set ftp0 [new Application/FTP]
+$ftp0 attach-agent $tcp0
+
+set cbr1 [new Application/Traffic/CBR]
+$cbr1 attach-agent $udp1
+
+$tcp0 set class_ 1
+$udp1 set class_ 2
+
+$ns connect $tcp0 $sink0
+$ns connect $udp1 $null0
+
+$ns at 0.1 "$cbr1 start"
+$ns at 0.2 "$ftp0 start"
+$ns at 0.5 "finish"
+$ns run
+
+
+
+AWK FILE
+
+
+
+BEGIN{udp=0;
+tcp=0;
+}
+{                                                                    
+if($1=="r" && $5=="cbr")
+{
+udp++;
+}
+else if($1=="r" && $5=="tcp")
+{
+tcp++;
+}
+}
+END
+{
+printf("Number of packets sent by TCP=%d\n",tcp);
+printf("Number of packets sent by UDP=%d\n",udp);
+}
+
+Out put
+Number of packets sent by TCP=676
+Number of packets sent by UDP=210
+
+
+
